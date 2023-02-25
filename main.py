@@ -148,6 +148,7 @@ class VideoDetect:
 
         # Create SNS topic
 
+        # snsTopicName = "AmazonRekognitionExample" + millis # original logic 
         snsTopicName = "AmazonRekognitionExample" + millis
 
         topicResponse = self.sns.create_topic(Name=snsTopicName)
@@ -198,11 +199,45 @@ class VideoDetect:
         self.sqs.delete_queue(QueueUrl=self.sqsQueueUrl)
         self.sns.delete_topic(TopicArn=self.snsTopicArn)
 
+    # ============== People pathing ===============  
+    def StartPersonPathing(self):
+        response=self.rek.start_person_tracking(Video={'S3Object': {'Bucket': self.bucket, 'Name': self.video}},
+            NotificationChannel={'RoleArn': self.roleArn, 'SNSTopicArn': self.snsTopicArn})
+
+        self.startJobId=response['JobId']
+        print('Start Job Id: ' + self.startJobId)
+    
+    def GetPersonPathingResults(self):
+        maxResults = 10
+        paginationToken = ''
+        finished = False
+
+        while finished == False:
+            response = self.rek.get_person_tracking(JobId=self.startJobId,
+                                            MaxResults=maxResults,
+                                            NextToken=paginationToken)
+
+            print('Codec: ' + response['VideoMetadata']['Codec'])
+            print('Duration: ' + str(response['VideoMetadata']['DurationMillis']))
+            print('Format: ' + response['VideoMetadata']['Format'])
+            print('Frame rate: ' + str(response['VideoMetadata']['FrameRate']))
+            print()
+
+            for personDetection in response['Persons']:
+                print('Index: ' + str(personDetection['Person']['Index']))
+                print('Timestamp: ' + str(personDetection['Timestamp']))
+                print()
+
+            if 'NextToken' in response:
+                paginationToken = response['NextToken']
+            else:
+                finished = True       
+
 def main():
     # pretty sure I need to provision these three resources 
-    roleArn = 'role-arn'
-    bucket = 'bucket-name'
-    video = 'video-name'
+    roleArn = 'arn:aws:iam::222267256875:role/argus-amazon-rekognition-access-to-sns'
+    bucket = 'argus-proof-of-concept-bucket'
+    video = 'frollic-one.MOV'
     profileName = 'default'
 
     session = boto3.Session(profile_name=profileName)
@@ -212,11 +247,11 @@ def main():
     sns = boto3.client('sns')
 
     analyzer = VideoDetect(roleArn, bucket, video, client, rek, sqs, sns)
-    analyzer.CreateTopicandQueue()
+    analyzer.CreateTopicandQueue() # I think we can drop this logic when we use a lambda instead in the future
 
-    analyzer.StartLabelDetection()
-    if analyzer.GetSQSMessageSuccess() == True:
-        analyzer.GetLabelDetectionResults()
+    analyzer.StartPersonPathing()
+    if analyzer.GetSQSMessageSuccess()==True:
+        analyzer.GetPersonPathingResults()
 
     analyzer.DeleteTopicandQueue()
 
