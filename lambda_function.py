@@ -170,7 +170,7 @@ class VideoDetect:
             Protocol='sqs',
             Endpoint=sqsQueueArn)
 
-        # Authorize SNS to write SQS queue
+        # Authorize SNS to write SQS queue # I think If I add it here I might be gucci
         policy = """{{
   "Version":"2012-10-17",
   "Statement":[
@@ -233,15 +233,59 @@ class VideoDetect:
             else:
                 finished = True       
 
+# local execution 
+# def main():
+#     # pretty sure I need to provision these three resources 
+#     roleArn = 'arn:aws:iam::222267256875:role/argus-amazon-rekognition-access-to-sns'
+#     bucket = 'argus-proof-of-concept-bucket'
+#     video = 'frollic-one.MOV'
+#     profileName = 'default'
+# 
+#     session = boto3.Session(profile_name=profileName)
+#     client = session.client('rekognition')
+#     rek = boto3.client('rekognition')
+#     sqs = boto3.client('sqs')
+#     sns = boto3.client('sns')
+# 
+#     analyzer = VideoDetect(roleArn, bucket, video, client, rek, sqs, sns)
+#     analyzer.CreateTopicandQueue() # I think we can drop this logic when we use a lambda instead in the future
+# 
+#     analyzer.StartPersonPathing()
+#     if analyzer.GetSQSMessageSuccess()==True:
+#         analyzer.GetPersonPathingResults()
+# 
+#     analyzer.DeleteTopicandQueue()
+
+# execute bus log locally 
+# if __name__ == "__main__":
+#     main()
+
+# execute bus log as lambda on aws
+# def lambda_handler(event, context):
+#     #print("Received event: " + json.dumps(event, indent=2))
+#     print("value1 = " + event['key1'])
+#     print("value2 = " + event['key2'])
+#     print("value3 = " + event['key3'])
+#     return event['key1']  # Echo back the first key value
+#     #raise Exception('Something went wrong')
+
+# execute bus log as lambda on aws
+# def lambda_handler(event, context):
+#     print("It's aliiive!!!")
+
+# execution as lambda in the cloud
 def main():
     # pretty sure I need to provision these three resources 
     roleArn = 'arn:aws:iam::222267256875:role/argus-amazon-rekognition-access-to-sns'
     bucket = 'argus-proof-of-concept-bucket'
     video = 'frollic-one.MOV'
-    profileName = 'default'
 
-    session = boto3.Session(profile_name=profileName)
+    # so this logic is only for if i'm using a session other than the default
+    # profileName = 'default'
+    # session = boto3.Session(profile_name=profileName)
+    session = boto3.session.Session()
     client = session.client('rekognition')
+
     rek = boto3.client('rekognition')
     sqs = boto3.client('sqs')
     sns = boto3.client('sns')
@@ -255,5 +299,7 @@ def main():
 
     analyzer.DeleteTopicandQueue()
 
-if __name__ == "__main__":
+# execute bus log as lambda on aws
+def lambda_handler(event, context):
+    print("It's aliiive!!!")
     main()
